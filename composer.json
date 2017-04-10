@@ -1,0 +1,10 @@
+{
+    "type": "library",
+    "name": "notrix/phpcb-migration",
+    "description": "Support couchbase 1.x class on top of 2.x library",
+    "keywords": ["couchbase", "migrate"],
+    "license": "MIT",
+    "autoload": {
+        "files": [ "Couchbase.php" ]
+    }
+}
