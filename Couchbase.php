@@ -45,6 +45,11 @@ class Couchbase {
     protected $lastResult = 0;
 
     /**
+     * @var string
+     */
+    protected $encoderFormat;
+
+    /**
      * Class constructor
      *
      * @param array  $ipsList
@@ -57,6 +62,7 @@ class Couchbase {
     {
         $this->bucketName = $bucket;
         $this->clusterIps = $ipsList;
+        $this->encoderFormat = ini_get('couchbase.encoder.format') ?: 'json';
 
         $this->connectCluster($login, $passwd);
 
@@ -837,9 +843,18 @@ class Couchbase {
         }
     }
 
+    /**
+     * @param mixed $value
+     *
+     * @return array
+     */
     protected function serializeValue($value)
     {
-        if (!is_array($value) && !is_object($value)) {
+        if (
+            $this->encoderFormat != 'json' ||
+            !is_array($value) &&
+            !is_object($value)
+        ) {
             return $value;
         }
 
@@ -849,9 +864,18 @@ class Couchbase {
         ];
     }
 
+    /**
+     * @param mixed $value
+     *
+     * @return mixed
+     */
     protected function unserializeValue($value)
     {
-        if (!empty($value->serialized)) {
+        if (
+            $this->encoderFormat == 'json' &&
+            is_object($value) &&
+            !empty($value->serialized)
+        ) {
             $value = unserialize($value->data);
         }
 
