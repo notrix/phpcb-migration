@@ -5,6 +5,6 @@
     "keywords": ["couchbase", "migrate"],
     "license": "MIT",
     "autoload": {
-        "files": [ "Couchbase.php" ]
+        "psr-0": { "Couchbase": "" }
     }
 }
