@@ -872,11 +872,16 @@ class Couchbase {
     protected function unserializeValue($value)
     {
         if (
-            $this->encoderFormat == 'json' &&
             is_object($value) &&
             !empty($value->serialized)
         ) {
-            $value = unserialize($value->data);
+            return unserialize($value->data);
+        }
+        if (
+            is_array($value) &&
+            !empty($value['serialized'])
+        ) {
+            return unserialize($value['data']);
         }
 
         return $value;
