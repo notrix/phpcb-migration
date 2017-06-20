@@ -27,8 +27,8 @@ if (class_exists('Couchbase', false)) {
  *
  * @author kevin
  */
-class Couchbase {
-
+class Couchbase
+{
     /** @var \Couchbase\Cluster */
     protected $cluster;
 
@@ -58,16 +58,13 @@ class Couchbase {
      * @param string $bucket
      * @param bool   $persist
      */
-    public function __construct ($ipsList, $login, $passwd, $bucket, $persist = false)
+    public function __construct($ipsList, $login, $passwd, $bucket, $persist = false)
     {
         $this->bucketName = $bucket;
         $this->clusterIps = $ipsList;
         $this->encoderFormat = ini_get('couchbase.encoder.format') ?: 'json';
 
         $this->connectCluster($login, $passwd);
-
-        // we have to change the transcoder to prevent a strange bug in some decode
-        $this->bucket->setTranscoder('couchbase_default_encoder', 'couchbase_basic_decoder_v1_mod');
     }
 
     public function rawBucket()
@@ -75,15 +72,15 @@ class Couchbase {
         return $this->bucket;
     }
 
-    private function connectCluster ($login, $passwd)
+    private function connectCluster($login, $passwd)
     {
         if (count($this->clusterIps) == 0) {
             throw new \Exception('no ips to connect to.');
         }
 
-        $dsn = 'couchbase://' . implode(',', $this->clusterIps);
+        $dsn = 'couchbase://'.implode(',', $this->clusterIps);
         try {
-            $this->cluster  = new \Couchbase\Cluster($dsn);
+            $this->cluster = new \Couchbase\Cluster($dsn);
 
             if ($login) {
                 $authenticator = new \Couchbase\ClassicAuthenticator();
@@ -99,51 +96,57 @@ class Couchbase {
             error_log(__METHOD__.' : '.$dsn.' does not answer "'.$e->getMessage().'" ('.$e->getCode().'), trying another one ...');
             $this->lastResult = $e->getCode();
 
-            if (!is_object($this->cluster)) { throw $e; }
+            if (!is_object($this->cluster)) {
+                throw $e;
+            }
         }
     }
 
-    private function connectBucket ()
+    private function connectBucket()
     {
         $this->bucket = $this->cluster->openBucket($this->bucketName);
     }
 
-    public function getResultCode ()
+    public function getResultCode()
     {
         return $this->lastResult;
     }
 
     /**
-     * @return  int           the current timeout in usec (1/1000000th of a second)
+     * @return int the current timeout in usec (1/1000000th of a second)
      */
-    public function getTimeout ()
+    public function getTimeout()
     {
         return $this->bucket->operationTimeout;
     }
 
     /**
+     * @param int $usec
      *
-     * @param type $usec
-     * @return  boolean
+     * @return bool
      */
-    public function setTimeout ($usec)
+    public function setTimeout($usec)
     {
         $this->bucket->operationTimeout = $usec;
+
         return true;
     }
 
     /**
-     *
      * @param type $id
      * @param type $cas
-     * @return  boolean           true if successful
-     * @throws  \Couchbase\Exception
+     *
+     * @return bool true if successful
+     *
+     * @throws \Couchbase\Exception
      */
-    public function unlock ($id, $cas)
+    public function unlock($id, $cas)
     {
         $options = array();
 
-        if (!empty($cas)) { $options['cas'] = $cas; }
+        if (!empty($cas)) {
+            $options['cas'] = $cas;
+        }
 
         $resp = $this->bucket->unlock($id, $options);
 
@@ -155,12 +158,13 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $ids
      * @param type $cas
      * @param type $flags
-     * @return  array           the documents indexed by id
-     * @throws  \Couchbase\Exception
+     *
+     * @return array the documents indexed by id
+     *
+     * @throws \Couchbase\Exception
      */
     public function getMulti($ids, &$cas, $flags = 0)
     {
@@ -185,24 +189,23 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $id
      * @param type $callback
      * @param type $cas
-     * @return  object            the document requested
-     *                            null if the document does not exists
-     * @throws  \Couchbase\Exception
+     *
+     * @return object the document requested
+     *                null if the document does not exists
+     *
+     * @throws \Couchbase\Exception
      */
-    public function get ($id, $callback = null, &$cas = null)
+    public function get($id, $callback = null, &$cas = null)
     {
         $options = array();
 
         try {
-
             $resp = $this->bucket->get($id, $options);
-
         } catch (\Couchbase\Exception $e) {
-//      if (strpos($e->getMessage(),'The key does not exist on the server') !== false) {
+            //      if (strpos($e->getMessage(),'The key does not exist on the server') !== false) {
             if ($e->getCode() == COUCHBASE_KEY_ENOENT) {
                 return null;
             }
@@ -221,15 +224,16 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $ids
      * @param type $cas
      * @param type $flags
-     * @param type $expiry      @see class documentation
-     * @return  array           the documents indexed by id
-     * @throws  \Couchbase\Exception
+     * @param type $expiry @see class documentation
+     *
+     * @return array the documents indexed by id
+     *
+     * @throws \Couchbase\Exception
      */
-    public function getAndLockMulti ($ids, &$cas, $flags, $expiry=0)
+    public function getAndLockMulti($ids, &$cas, $flags, $expiry = 0)
     {
         $options = array(
             'lockTime' => $expiry,
@@ -246,6 +250,7 @@ class Couchbase {
                     $cas[$n] = $v->cas;
                 }
             }
+
             return $ret;
         }
 
@@ -253,27 +258,26 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $id
      * @param type $cas
      * @param type $expiry
-     * @return  object            the requested document
-     *                            null if the document does not exists
-     * @throws  \Couchbase\Exception
+     *
+     * @return object the requested document
+     *                null if the document does not exists
+     *
+     * @throws \Couchbase\Exception
      */
-    public function getAndLock ($id, &$cas, $expiry)
+    public function getAndLock($id, &$cas, $expiry)
     {
         $options = array(
             'lockTime' => $expiry,
         );
 
         try {
-
             $resp = $this->bucket->get($id, $options);
-
         } catch (\Couchbase\Exception $e) {
             if ($e->getCode() == COUCHBASE_KEY_ENOENT) {
-//        error_log(__METHOD__.' : '.$e->getMessage().' ('.$e->getCode().')');
+                //        error_log(__METHOD__.' : '.$e->getMessage().' ('.$e->getCode().')');
                 return null;
             }
             throw $e;
@@ -291,15 +295,16 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $ids
-     * @param type $expiry        @see class documentation
+     * @param type $expiry @see class documentation
      * @param type $cas
-     * @return  array             the documents indexed by id
-     *                            null if the document does not exists
-     * @throws  \Couchbase\Exception
+     *
+     * @return array the documents indexed by id
+     *               null if the document does not exists
+     *
+     * @throws \Couchbase\Exception
      */
-    public function getAndTouchMulti ($ids, $expiry, &$cas)
+    public function getAndTouchMulti($ids, $expiry, &$cas)
     {
         $options = array(
             'expiry' => $this->transformExpiry($expiry),
@@ -316,6 +321,7 @@ class Couchbase {
                     $cas[$n] = $v->cas;
                 }
             }
+
             return $ret;
         }
 
@@ -323,23 +329,22 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $id
-     * @param type $expiry        @see class documentation
+     * @param type $expiry @see class documentation
      * @param type $cas
-     * @return  object            the requested document
-     * @throws  \Couchbase\Exception
+     *
+     * @return object the requested document
+     *
+     * @throws \Couchbase\Exception
      */
-    public function getAndTouch ($id, $expiry, &$cas)
+    public function getAndTouch($id, $expiry, &$cas)
     {
         $options = array(
             'expiry' => $this->transformExpiry($expiry),
         );
 
         try {
-
             $resp = $this->bucket->get($id, $options);
-
         } catch (\Couchbase\Exception $e) {
             if ($e->getCode() == COUCHBASE_KEY_ENOENT) {
                 return null;
@@ -349,6 +354,7 @@ class Couchbase {
 
         if (is_object($resp) && is_null($resp->error) && !is_null($resp->cas)) {
             $cas = $resp->cas;
+
             return $this->unserializeValue($resp->value);
         }
 
@@ -356,30 +362,33 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $id
      * @param type $document
-     * @param type $expiry        @see class documentation
+     * @param type $expiry       @see class documentation
      * @param type $cas
      * @param type $persist_to
      * @param type $replicate_to
-     * @return  string            the cas value of the document
-     *                            null if the document cannot be modified
-     * @throws  \Couchbase\Exception
+     *
+     * @return string the cas value of the document
+     *                null if the document cannot be modified
+     *
+     * @throws \Couchbase\Exception
      */
-    public function set ($id, $document, $expiry=null, $cas=null, $persist_to=0, $replicate_to=0)
+    public function set($id, $document, $expiry = null, $cas = null, $persist_to = 0, $replicate_to = 0)
     {
         $options = array();
 
-        $options['expiry'] = $this->transformExpiry($expiry,0);
+        $options['expiry'] = $this->transformExpiry($expiry, 0);
 
         // both must be passed as options or none
         if ($persist_to > 0 || $replicate_to > 0) {
-            $options['persist_to']    = $persist_to > 0 ? $persist_to : 0;
-            $options['replicate_to']  = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
+            $options['persist_to'] = $persist_to > 0 ? $persist_to : 0;
+            $options['replicate_to'] = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
         }
 
-        if (!empty($cas)) { $options['cas'] = $cas; }
+        if (!empty($cas)) {
+            $options['cas'] = $cas;
+        }
 
         $resp = $this->bucket->upsert($id, $this->serializeValue($document), $options);
 
@@ -391,25 +400,26 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $documents
      * @param type $expiry
      * @param type $persist_to
      * @param type $replicate_to
-     * @return  array             id => cas if successful or false if value not modified
-     *                            null if modification not possible
-     * @throws  \Couchbase\Exception
+     *
+     * @return array id => cas if successful or false if value not modified
+     *               null if modification not possible
+     *
+     * @throws \Couchbase\Exception
      */
-    public function setMulti ($documents, $expiry=null, $persist_to=0, $replicate_to=0)
+    public function setMulti($documents, $expiry = null, $persist_to = 0, $replicate_to = 0)
     {
         $options = array();
 
-        $options['expiry'] = $this->transformExpiry($expiry,0);
+        $options['expiry'] = $this->transformExpiry($expiry, 0);
 
         // both must be passed as options or none
         if ($persist_to > 0 || $replicate_to > 0) {
-            $options['persist_to']    = $persist_to > 0 ? $persist_to : 0;
-            $options['replicate_to']  = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
+            $options['persist_to'] = $persist_to > 0 ? $persist_to : 0;
+            $options['replicate_to'] = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
         }
 
         // upsert requires a different syntax than before, so we have to transform the value
@@ -424,11 +434,11 @@ class Couchbase {
             foreach ($resp as $n => $v) {
                 if (is_object($v) && is_null($v->error) && is_resource($v->cas)) {
                     $ret[$n] = $v->cas;
-                }
-                else {
+                } else {
                     $ret[$n] = false;
                 }
             }
+
             return $ret;
         }
 
@@ -436,30 +446,33 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $id
      * @param type $document
-     * @param type $expiry        @see class documentation
+     * @param type $expiry       @see class documentation
      * @param type $cas
      * @param type $persist_to
      * @param type $replicate_to
-     * @return  string            the cas value of the document
-     *                            null if modification not possible (document does not exists)
-     * @throws  \Couchbase\Exception
+     *
+     * @return string the cas value of the document
+     *                null if modification not possible (document does not exists)
+     *
+     * @throws \Couchbase\Exception
      */
-    public function replace ($id, $document, $expiry=null, $cas=null, $persist_to=0, $replicate_to=0)
+    public function replace($id, $document, $expiry = null, $cas = null, $persist_to = 0, $replicate_to = 0)
     {
         $options = array();
 
-        $options['expiry'] = $this->transformExpiry($expiry,0);
+        $options['expiry'] = $this->transformExpiry($expiry, 0);
 
         // both must be passed as options or none
         if ($persist_to > 0 || $replicate_to > 0) {
-            $options['persist_to']    = $persist_to > 0 ? $persist_to : 0;
-            $options['replicate_to']  = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
+            $options['persist_to'] = $persist_to > 0 ? $persist_to : 0;
+            $options['replicate_to'] = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
         }
 
-        if (!empty($cas)) { $options['cas'] = $cas; }
+        if (!empty($cas)) {
+            $options['cas'] = $cas;
+        }
 
         try {
             $resp = $this->bucket->replace($id, $this->serializeValue($document), $options);
@@ -478,13 +491,14 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $ids
      * @param type $expiry
-     * @return  boolean           true if sucessful
-     * @throws  \Couchbase\Exception
+     *
+     * @return bool true if sucessful
+     *
+     * @throws \Couchbase\Exception
      */
-    public function touchMulti ($ids, $expiry)
+    public function touchMulti($ids, $expiry)
     {
         $options = array(
             'expiry' => $this->transformExpiry($expiry),
@@ -500,22 +514,21 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $id
-     * @param   type      $expiry     @see class documentation
-     * @return  boolean               true if sucessful
-     * @throws  \Couchbase\Exception
+     * @param type $expiry @see class documentation
+     *
+     * @return bool true if sucessful
+     *
+     * @throws \Couchbase\Exception
      */
-    public function touch ($id, $expiry)
+    public function touch($id, $expiry)
     {
         $options = array(
             'expiry' => $this->transformExpiry($expiry),
         );
 
         try {
-
             $resp = $this->bucket->get($id, $options);
-
         } catch (\Couchbase\Exception $e) {
             if ($e->getCode() == COUCHBASE_KEY_ENOENT) {
                 return false;
@@ -531,17 +544,18 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $id
      * @param type $delta
      * @param type $create
      * @param type $expiry
      * @param type $initial
-     * @return  int           the new value upon success
-     *                        null in case of error
-     * @throws  \Couchbase\Exception
+     *
+     * @return int the new value upon success
+     *             null in case of error
+     *
+     * @throws \Couchbase\Exception
      */
-    public function increment ($id, $delta, $create, $expiry, $initial)
+    public function increment($id, $delta, $create, $expiry, $initial)
     {
         $options = array();
 
@@ -564,18 +578,18 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $id
      * @param type $document
-     * @param   int     $expiry
-     *                              null to never expire
+     * @param int  $expiry null to never expire
      * @param type $persist_to
      * @param type $replicate_to
-     * @return  object            the cas value of the document
-     *                            false if the value already exists
-     * @throws  \Couchbase\Exception
+     *
+     * @return object the cas value of the document
+     *                false if the value already exists
+     *
+     * @throws \Couchbase\Exception
      */
-    public function add ($id, $document, $expiry=null, $persist_to=0, $replicate_to=0)
+    public function add($id, $document, $expiry = null, $persist_to = 0, $replicate_to = 0)
     {
         $options = array();
 
@@ -585,16 +599,14 @@ class Couchbase {
 
         // both must be passed as options or none
         if ($persist_to > 0 || $replicate_to > 0) {
-            $options['persist_to']    = $persist_to > 0 ? $persist_to : 0;
-            $options['replicate_to']  = $replicate_to > 0 ? $replicate_to : $persist_to-1;
+            $options['persist_to'] = $persist_to > 0 ? $persist_to : 0;
+            $options['replicate_to'] = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
         }
 
         try {
-
-            $resp = $this->bucket->insert($id,$document,$options); /* @var $rep CouchbaseMetaDoc */
-
+            $resp = $this->bucket->insert($id, $document, $options); /* @var $rep CouchbaseMetaDoc */
         } catch (\Couchbase\Exception $e) {
-//      if (strpos($e->getMessage(), 'The key already exists in the server') !== false) {
+            //      if (strpos($e->getMessage(), 'The key already exists in the server') !== false) {
             if ($e->getCode() == COUCHBASE_KEY_EEXISTS) {
                 return false;
             }
@@ -609,23 +621,25 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $id
      * @param type $cas
      * @param type $persist_to
      * @param type $replicate_to
-     * @return  string            the cas value of the deleted document
-     *                            false if the value cannot be deleted
+     *
+     * @return string the cas value of the deleted document
+     *                false if the value cannot be deleted
      */
-    public function delete ($id, $cas=null, $persist_to=1, $replicate_to=0)
+    public function delete($id, $cas = null, $persist_to = 1, $replicate_to = 0)
     {
         $options = array();
 
-        if (!empty($cas)) { $options['cas'] = $cas; }
+        if (!empty($cas)) {
+            $options['cas'] = $cas;
+        }
 
         if ($persist_to > 0 || $replicate_to > 0) {
-            $options['persist_to']    = $persist_to > 0 ? $persist_to : 0;
-            $options['replicate_to']  = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
+            $options['persist_to'] = $persist_to > 0 ? $persist_to : 0;
+            $options['replicate_to'] = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
         }
 
         $resp = $this->bucket->remove($id, $options);
@@ -638,18 +652,19 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $id
      * @param type $document
      * @param type $expiry
      * @param type $cas
      * @param type $persist_to
      * @param type $replicate_to
-     * @return  string            the cas value of the document
-     *                            false if the value cannot be modified
-     * @throws  \CouchbaseException
+     *
+     * @return string the cas value of the document
+     *                false if the value cannot be modified
+     *
+     * @throws \CouchbaseException
      */
-    public function append ($id, $document, $expiry=null, $cas=null, $persist_to=0, $replicate_to=0)
+    public function append($id, $document, $expiry = null, $cas = null, $persist_to = 0, $replicate_to = 0)
     {
         $options = array();
 
@@ -658,16 +673,16 @@ class Couchbase {
 
         // both must be passed as options or none
         if ($persist_to > 0 || $replicate_to > 0) {
-            $options['persist_to']    = $persist_to > 0 ? $persist_to : 0;
-            $options['replicate_to']  = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
+            $options['persist_to'] = $persist_to > 0 ? $persist_to : 0;
+            $options['replicate_to'] = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
         }
 
-        if (!empty($cas)) { $options['cas'] = $cas; }
+        if (!empty($cas)) {
+            $options['cas'] = $cas;
+        }
 
         try {
-
             $resp = $this->bucket->append($id, $document, $options);
-
         } catch (\Couchbase\Exception $e) {
             if ($e->getCode() == COUCHBASE_NOT_STORED) {
                 return false;
@@ -683,18 +698,19 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $id
      * @param type $document
      * @param type $expiry
      * @param type $cas
      * @param type $persist_to
      * @param type $replicate_to
-     * @return  string            the cas value of the document
-     *                            false if the value cannot be modified
-     * @throws  \Couchbase\Exception
+     *
+     * @return string the cas value of the document
+     *                false if the value cannot be modified
+     *
+     * @throws \Couchbase\Exception
      */
-    public function prepend ($id, $document, $expiry=null, $cas=null, $persist_to=0, $replicate_to=0)
+    public function prepend($id, $document, $expiry = null, $cas = null, $persist_to = 0, $replicate_to = 0)
     {
         $options = array();
 
@@ -703,16 +719,16 @@ class Couchbase {
 
         // both must be passed as options or none
         if ($persist_to > 0 || $replicate_to > 0) {
-            $options['persist_to']    = $persist_to > 0 ? $persist_to : 0;
-            $options['replicate_to']  = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
+            $options['persist_to'] = $persist_to > 0 ? $persist_to : 0;
+            $options['replicate_to'] = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
         }
 
-        if (!empty($cas)) { $options['cas'] = $cas; }
+        if (!empty($cas)) {
+            $options['cas'] = $cas;
+        }
 
         try {
-
             $resp = $this->bucket->prepend($id, $document, $options);
-
         } catch (\Couchbase\Exception $e) {
             if ($e->getCode() == COUCHBASE_NOT_STORED) {
                 return false;
@@ -728,28 +744,27 @@ class Couchbase {
     }
 
     /**
-     *
      * @param type $designDoc
      * @param type $viewName
-     * @param type $options       the options understood are a subset of those from the client lib v1 :
-     *                            http://www.couchbase.com/autodocs/couchbase-php-client-1.1.5/classes/Couchbase.html#method_view
-     *                            startkey, endkey, skip, limit, key, keys, stale, descending, full_set, inclusive_end, connection_timeout
-     *
+     * @param type $options    the options understood are a subset of those from the client lib v1 :
+     *                         http://www.couchbase.com/autodocs/couchbase-php-client-1.1.5/classes/Couchbase.html#method_view
+     *                         startkey, endkey, skip, limit, key, keys, stale, descending, full_set, inclusive_end, connection_timeout
      * @param type $returnErrs
-     * @return  array             an array composed of :
-     *                              "rows"        : the list of matching entries, see below for the syntax of one entry
-     *                              "total_rows"  : total number of matching rows
-     *                            Each entry is an array composed of :
-     *                               "key"   : index key
-     *                               "id"    : document id/key
-     *                               "value" : index value for this key (can be null)
-     * @throws  \CouchbaseException
+     *
+     * @return array an array composed of :
+     *               "rows"        : the list of matching entries, see below for the syntax of one entry
+     *               "total_rows"  : total number of matching rows
+     *               Each entry is an array composed of :
+     *               "key"   : index key
+     *               "id"    : document id/key
+     *               "value" : index value for this key (can be null)
+     *
+     * @throws \CouchbaseException
      */
-    public function view ($designDoc, $viewName, $options=array(), $returnErrs=true)
+    public function view($designDoc, $viewName, $options = array(), $returnErrs = true)
     {
-
-        $query      = \Couchbase\ViewQuery::from($designDoc, $viewName);
-        $customOpt  = array();
+        $query = \Couchbase\ViewQuery::from($designDoc, $viewName);
+        $customOpt = array();
 
         if (isset($options['skip'])) {
             $query->skip($options['skip']);
@@ -802,8 +817,7 @@ class Couchbase {
         if (isset($options['stale'])) {
             if ($options['stale'] === 'update_after') {
                 $query->stale(\Couchbase\ViewQuery::UPDATE_AFTER);
-            }
-            elseif ($options['stale'] === false) {
+            } elseif ($options['stale'] === false) {
                 $query->stale(\Couchbase\ViewQuery::UPDATE_BEFORE);
             }
         }
@@ -815,24 +829,27 @@ class Couchbase {
         $resp = $this->bucket->query($query, true);
 
         return [
-            'rows'       => array_map('get_object_vars', $resp->rows),
+            'rows' => array_map('get_object_vars', $resp->rows),
             'total_rows' => $resp->total_rows,
         ];
     }
 
-    protected function transformExpiry ($expiry, $retWhenNull=null)
+    protected function transformExpiry($expiry, $retWhenNull = null)
     {
-        if ($expiry === null || $expiry === false) { return $retWhenNull; }
+        if ($expiry === null || $expiry === false) {
+            return $retWhenNull;
+        }
 
         // 0 means "no expiration", we must treat it specifically otherwise a timestamp will be returned
-        if ($expiry == 0) { return 0; }
+        if ($expiry == 0) {
+            return 0;
+        }
 
         $now = time();
 
         if ($expiry > $now) {
             return $expiry;
-        }
-        elseif ($expiry < 86400) { // 1 day
+        } elseif ($expiry < 86400) { // 1 day
             // we send the number as is so that Couchbase calculates the timestamp
             // it is more precise for a small duration
             return $expiry;
@@ -860,7 +877,7 @@ class Couchbase {
 
         return [
             'serialized' => true,
-            'data'       => serialize($value),
+            'data' => serialize($value),
         ];
     }
 
@@ -886,78 +903,4 @@ class Couchbase {
 
         return $value;
     }
-}
-
-// this function is taken from the php-couchbase PHP client lib in the file stub/default_transcoder.php
-// it is slightly modified to correct a bug in json_decode
-function couchbase_basic_decoder_v1_mod ($bytes, $flags, $datatype)
-{
-    global $COUCHBASE_DEFAULT_DECOPTS;
-
-    // the following code is correct but commented out as it could have unforeseen effects
-    // it was useful for counter items that we get() and which sends a string instead of an int
-//  if ($flags == 0) {
-//    // some MetaDoc objects have a flag of 0 and thus is decoded like a string
-//    // so in order to avoid sending a string in return (which does not make sense for a counter) we cast
-//    return is_numeric($bytes) ? intval($bytes) : $bytes;
-//  }
-
-    $options = $COUCHBASE_DEFAULT_DECOPTS;
-//var_dump($bytes);var_dump($flags);var_dump($datatype);var_dump($options);
-    $cffmt = $flags & COUCHBASE_CFFMT_MASK; // -16777216
-    $sertype = $flags & COUCHBASE_VAL_MASK; // 31
-    $cmprtype = $flags & COUCHBASE_COMPRESSION_MASK; // 224
-//var_dump($cffmt);var_dump($sertype);var_dump($cmprtype);
-    $data = $bytes;
-    $retval = null;
-
-    if ($cffmt != 0 && $cffmt != COUCHBASE_CFFMT_PRIVATE) { // 16777216
-        if ($cffmt == COUCHBASE_CFFMT_JSON) { // 33554432
-            // for some reason this can fail on some strings, if so it will be caught by the next if
-            $retval = json_decode($data, $options['jsonassoc']);
-        }
-        elseif ($cffmt == COUCHBASE_CFFMT_RAW) { // 50331648
-            $retval = $data;
-        }
-        elseif ($cffmt == COUCHBASE_CFFMT_STRING) { // 67108864
-            $retval = (string) $data;
-        }
-        else {
-            throw new \CouchbaseException("Unknown flags value $flags -- cannot decode value $bytes");
-        }
-    }
-
-    if ($retval === null) {
-        if ($cmprtype == COUCHBASE_COMPRESSION_ZLIB) {
-            $bytes = gzdecode($bytes);
-        }
-        elseif ($cmprtype == COUCHBASE_COMPRESSION_FASTLZ) {
-            $data = fastlz_decompress($bytes);
-        }
-
-        $retval = NULL;
-        if ($sertype == COUCHBASE_VAL_IS_STRING) {
-            $retval = $data;
-        }
-        elseif ($sertype == COUCHBASE_VAL_IS_LONG) {
-            $retval = intval($data);
-        }
-        elseif ($sertype == COUCHBASE_VAL_IS_DOUBLE) {
-            $retval = floatval($data);
-        }
-        elseif ($sertype == COUCHBASE_VAL_IS_BOOL) {
-            $retval = boolval($data);
-        }
-        elseif ($sertype == COUCHBASE_VAL_IS_JSON) {
-            $retval = json_decode($data, $options['jsonassoc']);
-        }
-        elseif ($sertype == COUCHBASE_VAL_IS_IGBINARY) {
-            $retval = igbinary_unserialize($data);
-        }
-        elseif ($sertype == COUCHBASE_VAL_IS_SERIALIZED) {
-            $retval = unserialize($data);
-        }
-    }
-
-    return $retval;
 }
