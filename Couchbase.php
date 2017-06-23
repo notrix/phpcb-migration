@@ -45,11 +45,6 @@ class Couchbase
     protected $lastResult = 0;
 
     /**
-     * @var string
-     */
-    protected $encoderFormat;
-
-    /**
      * Class constructor
      *
      * @param array  $ipsList
@@ -62,7 +57,6 @@ class Couchbase
     {
         $this->bucketName = $bucket;
         $this->clusterIps = $ipsList;
-        $this->encoderFormat = ini_get('couchbase.encoder.format') ?: 'json';
 
         $this->connectCluster($login, $passwd);
 
