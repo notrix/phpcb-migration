@@ -65,6 +65,33 @@ class Couchbase
         $this->encoderFormat = ini_get('couchbase.encoder.format') ?: 'json';
 
         $this->connectCluster($login, $passwd);
+
+        // Use custom encoder to maintain compatibility between couchbase1 and couchbase2 php extensions
+        $this->bucket->setTranscoder(
+            function ($value) {
+                if (is_string($value) && strlen($value) < 30) {
+                    return [$value, 0, 0];
+                }
+                if (is_int($value)) {
+                    return [(string) $value, 1, 0];
+                }
+                if (is_float($value)) {
+                    return [(string) $value, 2, 0];
+                }
+                if (is_bool($value)) {
+                    return [(string) $value, 3, 0];
+                }
+
+                return [
+                    \Couchbase\zlibCompress(serialize($value)),
+                    52,
+                    0,
+                ];
+            },
+            function ($value, $flags, $datatype) {
+                return \Couchbase\defaultDecoder($value, $flags, $datatype);
+            }
+        );
     }
 
     public function rawBucket()
