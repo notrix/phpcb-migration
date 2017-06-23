@@ -204,7 +204,7 @@ class Couchbase
             $cas = array();
             foreach ($resp as $n => $v) {
                 if (is_object($v) && is_null($v->error) && is_resource($v->cas)) {
-                    $ret[$n] = $this->unserializeValue($v->value);
+                    $ret[$n] = $v->value;
                     $cas[$n] = $v->cas;
                 }
             }
@@ -244,7 +244,7 @@ class Couchbase
             // in some lib version an empty string was returned as value null, only the flag changed
             // 67108864 for an empty string (which gives the type "string" because 67108864 & 31 = 0)
             // 33554433 for null (which gives the type "json" because 33554433 & 31 = 6
-            return $resp->value === null && ($resp->flags & 31) == 0 ? '' : $this->unserializeValue($resp->value);
+            return $resp->value === null && ($resp->flags & 31) == 0 ? '' : $resp->value;
         }
 
         return null;
@@ -273,7 +273,7 @@ class Couchbase
             $cas = array();
             foreach ($resp as $n => $v) {
                 if (is_object($v) && is_null($v->error) && is_resource($v->cas)) {
-                    $ret[$n] = $this->unserializeValue($v->value);
+                    $ret[$n] = $v->value;
                     $cas[$n] = $v->cas;
                 }
             }
@@ -315,7 +315,7 @@ class Couchbase
             // this case is not supposed to happen anymore (transcoder issue)
             // still we keep it in case, it allows the caller to know that the lock succeeded but
             // the value is not returned
-            return $resp->value === null ? false : $this->unserializeValue($resp->value);
+            return $resp->value === null ? false : $resp->value;
         }
 
         return null;
@@ -344,7 +344,7 @@ class Couchbase
             $cas = array();
             foreach ($resp as $n => $v) {
                 if (is_object($v) && is_null($v->error) && is_resource($v->cas)) {
-                    $ret[$n] = $this->unserializeValue($v->value);
+                    $ret[$n] = $v->value;
                     $cas[$n] = $v->cas;
                 }
             }
@@ -382,7 +382,7 @@ class Couchbase
         if (is_object($resp) && is_null($resp->error) && !is_null($resp->cas)) {
             $cas = $resp->cas;
 
-            return $this->unserializeValue($resp->value);
+            return $resp->value;
         }
 
         return null;
@@ -417,7 +417,7 @@ class Couchbase
             $options['cas'] = $cas;
         }
 
-        $resp = $this->bucket->upsert($id, $this->serializeValue($document), $options);
+        $resp = $this->bucket->upsert($id, $document, $options);
 
         if (is_object($resp) && is_null($resp->error) && !is_null($resp->cas)) {
             return $resp->cas;
@@ -452,7 +452,7 @@ class Couchbase
         // upsert requires a different syntax than before, so we have to transform the value
         $req = array();
         foreach ($documents as $id => $document) {
-            $req[$id] = array('value' => $this->serializeValue($document));
+            $req[$id] = array('value' => $document);
         }
 
         $resp = $this->bucket->upsert($req, null, $options);
@@ -502,7 +502,7 @@ class Couchbase
         }
 
         try {
-            $resp = $this->bucket->replace($id, $this->serializeValue($document), $options);
+            $resp = $this->bucket->replace($id, $document, $options);
         } catch (\Couchbase\Exception $e) {
             if ($e->getCode() == COUCHBASE_KEY_ENOENT) {
                 return null;
@@ -598,7 +598,7 @@ class Couchbase
         $resp = $this->bucket->counter($id, $delta, $options);
 
         if (is_object($resp) && is_null($resp->error)) {
-            return $this->unserializeValue($resp->value);
+            return $resp->value;
         }
 
         return null;
@@ -885,49 +885,5 @@ class Couchbase
             // for 32bits systems, the timestamp can be farther than 2038
             return bccomp($ts, PHP_INT_MAX) > 0 ? PHP_INT_MAX : $ts;
         }
-    }
-
-    /**
-     * @param mixed $value
-     *
-     * @return array
-     */
-    protected function serializeValue($value)
-    {
-        if (
-            $this->encoderFormat != 'json' ||
-            !is_array($value) &&
-            !is_object($value)
-        ) {
-            return $value;
-        }
-
-        return [
-            'serialized' => true,
-            'data' => serialize($value),
-        ];
-    }
-
-    /**
-     * @param mixed $value
-     *
-     * @return mixed
-     */
-    protected function unserializeValue($value)
-    {
-        if (
-            is_object($value) &&
-            !empty($value->serialized)
-        ) {
-            return unserialize($value->data);
-        }
-        if (
-            is_array($value) &&
-            !empty($value['serialized'])
-        ) {
-            return unserialize($value['data']);
-        }
-
-        return $value;
     }
 }
