@@ -83,7 +83,23 @@ class Couchbase
                 ];
             },
             function ($value, $flags, $datatype) {
-                return \Couchbase\defaultDecoder($value, $flags, $datatype);
+                $data = \Couchbase\defaultDecoder($value, $flags, $datatype);
+                if (
+                    is_array($data) &&
+                    !empty($data['serialized']) &&
+                    !empty($data['data'])
+                ) {
+                    return unserialize($data['data']);
+                }
+                if (
+                    $data instanceof \stdClass &&
+                    !empty($data->serialized) &&
+                    !empty($data->data)
+                ) {
+                    return unserialize($data->data);
+                }
+
+                return $data;
             }
         );
     }
