@@ -679,7 +679,14 @@ class Couchbase
             $options['replicate_to'] = $replicate_to > 0 ? $replicate_to : $persist_to - 1;
         }
 
-        $resp = $this->bucket->remove($id, $options);
+        try {
+            $resp = $this->bucket->remove($id, $options);
+        } catch (\Couchbase\Exception $e) {
+            if ($e->getCode() == COUCHBASE_KEYNOTFOUND) {
+                return false;
+            }
+            throw $e;
+        }
 
         if (is_object($resp) && is_null($resp->error) && !is_null($resp->cas)) {
             return $resp->cas;
